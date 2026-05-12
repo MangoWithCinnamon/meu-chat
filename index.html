@@ -867,7 +867,7 @@
     // ─── ENTER ───
     window.enterChat = async function() {
   const name = document.getElementById('inp-name').value.trim();
-  const room = document.getElementById('inp-room').value.trim().replace(/\s+/g,'-').toLowerCase();
+  const room = document.getElementById('inp-room').value.trim().replace(/\s+/g, '-').toLowerCase();
   const pass = document.getElementById('inp-pass').value.trim();
 
   if (!name) return showError('Digite seu nome.');
@@ -881,7 +881,7 @@
   try {
     const roomPassRef = ref(db, `rooms/${room}/config/password`);
     const snap = await get(roomPassRef);
-    
+
     if (snap.exists()) {
       if (snap.val() !== pass) {
         btn.disabled = false;
@@ -892,7 +892,7 @@
       await set(roomPassRef, pass);
     }
 
-    // Início da lógica original após validação de senha
+    // --- CONTINUAÇÃO DO LOGIN ---
     currentUser = { id: uid(), name };
     currentRoom = room;
 
@@ -910,18 +910,18 @@
 
     onValue(ref(db, `rooms/${room}/typing`), snap => {
       if (!snap.exists()) { document.getElementById('typing-area').textContent = ''; return; }
-      const others = Object.entries(snap.val()).filter(([id]) => id !== currentUser.id).map(([,v]) => v.name);
+      const others = Object.entries(snap.val()).filter(([id]) => id !== currentUser.id).map(([, v]) => v.name);
       document.getElementById('typing-area').textContent =
         others.length === 0 ? '' :
         others.length === 1 ? `${others[0]} está digitando...` :
-        `${others.slice(0,-1).join(', ')} e ${others.at(-1)} estão digitando...`;
+        `${others.slice(0, -1).join(', ')} e ${others.at(-1)} estão digitando...`;
     });
 
     messagesRef = ref(db, `rooms/${room}/messages`);
     onChildAdded(messagesRef, snap => renderMessage(snap.key, snap.val()));
     onChildChanged(messagesRef, snap => updateMessage(snap.key, snap.val()));
 
-    await push(messagesRef, { type:'system', text:`${name} entrou na sala`, ts: serverTimestamp() });
+    await push(messagesRef, { type: 'system', text: `${name} entrou na sala`, ts: serverTimestamp() });
 
     document.getElementById('setup-screen').style.display = 'none';
     document.getElementById('chat-screen').style.display = 'flex';
@@ -936,11 +936,11 @@
     input.addEventListener('input', handleTyping);
     input.focus();
 
-  } catch (error) {
-    console.error(error);
+  } catch (err) {
+    console.error(err);
     btn.disabled = false;
     btn.innerHTML = 'Entrar no Chat 🚀';
-    showError('Erro ao conectar ao banco de dados.');
+    showError('Erro de conexão ou permissão.');
   }
 };
           // ─── RENDER MESSAGE ───
