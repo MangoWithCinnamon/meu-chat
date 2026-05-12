@@ -29,7 +29,6 @@
 
     *,
     *::before,
-    
     *::after {
       box-sizing: border-box;
       margin: 0;
@@ -867,86 +866,83 @@
     }
     // ─── ENTER ───
     window.enterChat = async function() {
-          const name = document.getElementById('inp-name').value.trim();
-          const room = document.getElementById('inp-room').value.trim().replace(/\s+/g, '-').toLowerCase();
-          const pass = document.getElementById('inp-pass').value.trim(); // Pega a senha
-          if (!name) return showError('Digite seu nome.');
-          if (!room) return showError('Digite o nome da sala.');
-          if (!pass) return showError('Digite a senha da sala.');
-          const btn = document.getElementById('btn-enter');
-          btn.disabled = true;
-          btn.innerHTML = '<span class="spinner"></span>Verificando...';
-          // Referência para a senha da sala no Firebase
-          const roomPassRef = ref(db, `rooms/${room}/config/password`);
-          try {
-            const snap = await get(roomPassRef);
-            if (snap.exists()) {
-              // Sala já existe, verifica a senha
-              if (snap.val() !== pass) {
-                btn.disabled = false;
-                btn.innerHTML = 'Entrar no Chat 🚀';
-                return showError('Senha incorreta para esta sala!');
-              }
-            } else {
-              // Sala nova, define a senha informada como a senha da sala
-              await set(roomPassRef, pass);
-            }
-            // Se passou pela senha, continua o login normal...
-            currentUser = {
-              id: uid(),
-              name
-            };
-            currentRoom = room;
-            // ... (restante do código original de presenceRef, typingRef e messagesRef)
-            // Presence
-            presenceRef = ref(db, `rooms/${room}/presence/${currentUser.id}`);
-            await set(presenceRef, {
-              name,
-              joinedAt: Date.now()
-            });
-            onDisconnect(presenceRef).remove();
-            onValue(ref(db, `rooms/${room}/presence`), snap => {
-              const c = snap.exists() ? Object.keys(snap.val()).length : 0;
-              document.getElementById('online-count').textContent = `${c} online`;
-            });
-            typingRef = ref(db, `rooms/${room}/typing/${currentUser.id}`);
-            onDisconnect(typingRef).remove();
-            onValue(ref(db, `rooms/${room}/typing`), snap => {
-              if (!snap.exists()) {
-                document.getElementById('typing-area').textContent = '';
-                return;
-              }
-              const others = Object.entries(snap.val()).filter(([id]) => id !== currentUser.id).map(([, v]) => v.name);
-              document.getElementById('typing-area').textContent =
-                others.length === 0 ? '' :
-                others.length === 1 ? `${others[0]} está digitando...` :
-                `${others.slice(0,-1).join(', ')} e ${others.at(-1)} estão digitando...`;
-            });
-            // Messages
-            messagesRef = ref(db, `rooms/${room}/messages`);
-            onChildAdded(messagesRef, snap => renderMessage(snap.key, snap.val()));
-            onChildChanged(messagesRef, snap => updateMessage(snap.key, snap.val()));
-            // join msg
-            await push(messagesRef, {
-              type: 'system',
-              text: `${name} entrou na sala`,
-              ts: serverTimestamp()
-            });
-            document.getElementById('setup-screen').style.display = 'none';
-            document.getElementById('chat-screen').style.display = 'flex';
-            document.getElementById('header-room').textContent = `#${room}`;
-            document.getElementById('header-sub').textContent = name;
-            document.getElementById('header-avatar').textContent = initials(name);
-            const input = document.getElementById('msg-input');
-            input.addEventListener('keydown', e => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                window.sendMessage();
-              }
-            });
-            input.addEventListener('input', handleTyping);
-            input.focus();
-          };
+  const name = document.getElementById('inp-name').value.trim();
+  const room = document.getElementById('inp-room').value.trim().replace(/\s+/g,'-').toLowerCase();
+  const pass = document.getElementById('inp-pass').value.trim();
+
+  if (!name) return showError('Digite seu nome.');
+  if (!room) return showError('Digite o nome da sala.');
+  if (!pass) return showError('Digite a senha da sala.');
+
+  const btn = document.getElementById('btn-enter');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Verificando...';
+
+  try {
+    const roomPassRef = ref(db, `rooms/${room}/config/password`);
+    const snap = await get(roomPassRef);
+    
+    if (snap.exists()) {
+      if (snap.val() !== pass) {
+        btn.disabled = false;
+        btn.innerHTML = 'Entrar no Chat 🚀';
+        return showError('Senha incorreta para esta sala!');
+      }
+    } else {
+      await set(roomPassRef, pass);
+    }
+
+    // Início da lógica original após validação de senha
+    currentUser = { id: uid(), name };
+    currentRoom = room;
+
+    presenceRef = ref(db, `rooms/${room}/presence/${currentUser.id}`);
+    await set(presenceRef, { name, joinedAt: Date.now() });
+    onDisconnect(presenceRef).remove();
+
+    onValue(ref(db, `rooms/${room}/presence`), snap => {
+      const c = snap.exists() ? Object.keys(snap.val()).length : 0;
+      document.getElementById('online-count').textContent = `${c} online`;
+    });
+
+    typingRef = ref(db, `rooms/${room}/typing/${currentUser.id}`);
+    onDisconnect(typingRef).remove();
+
+    onValue(ref(db, `rooms/${room}/typing`), snap => {
+      if (!snap.exists()) { document.getElementById('typing-area').textContent = ''; return; }
+      const others = Object.entries(snap.val()).filter(([id]) => id !== currentUser.id).map(([,v]) => v.name);
+      document.getElementById('typing-area').textContent =
+        others.length === 0 ? '' :
+        others.length === 1 ? `${others[0]} está digitando...` :
+        `${others.slice(0,-1).join(', ')} e ${others.at(-1)} estão digitando...`;
+    });
+
+    messagesRef = ref(db, `rooms/${room}/messages`);
+    onChildAdded(messagesRef, snap => renderMessage(snap.key, snap.val()));
+    onChildChanged(messagesRef, snap => updateMessage(snap.key, snap.val()));
+
+    await push(messagesRef, { type:'system', text:`${name} entrou na sala`, ts: serverTimestamp() });
+
+    document.getElementById('setup-screen').style.display = 'none';
+    document.getElementById('chat-screen').style.display = 'flex';
+    document.getElementById('header-room').textContent = `#${room}`;
+    document.getElementById('header-sub').textContent = name;
+    document.getElementById('header-avatar').textContent = initials(name);
+
+    const input = document.getElementById('msg-input');
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); window.sendMessage(); }
+    });
+    input.addEventListener('input', handleTyping);
+    input.focus();
+
+  } catch (error) {
+    console.error(error);
+    btn.disabled = false;
+    btn.innerHTML = 'Entrar no Chat 🚀';
+    showError('Erro ao conectar ao banco de dados.');
+  }
+};
           // ─── RENDER MESSAGE ───
           function renderMessage(msgId, msg) {
             const area = document.getElementById('messages-area');
