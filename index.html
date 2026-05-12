@@ -27,6 +27,24 @@
       --shadow: 0 2px 12px rgba(255, 107, 0, 0.15);
     }
 
+    /* Cores para o Modo Escuro */
+[data-theme="dark"] {
+  --bg: #121212;
+  --surface: #1E1E1E;
+  --surface2: #2D2D2D;
+  --border: #444;
+  --text: #E0E0E0;
+  --text-dim: #B0B0B0;
+  --other-bubble: #2D2D2D;
+  --other-text: #E0E0E0;
+  --shadow: 0 4px 15px rgba(0,0,0,0.5);
+}
+
+/* Ajuste suave para transição de cores */
+body {
+  transition: background-color 0.3s, color 0.3s;
+}
+
     *,
     *::before,
     *::after {
@@ -758,6 +776,19 @@
   <!-- ═══ CHAT ═══ -->
   <div id="chat-screen">
     <div class="chat-header">
+      <div class="header">
+  <div class="header-info">
+    <div class="avatar" id="header-avatar">M</div>
+    <div>
+      <div id="header-room" style="font-weight:800; font-size:1.1rem;">#sala</div>
+      <div id="header-sub" style="font-size:0.85rem; opacity:0.8;">usuário</div>
+    </div>
+  </div>
+  <div style="display: flex; gap: 10px; align-items: center;">
+    <button class="btn-icon" onclick="toggleTheme()" title="Alternar Tema">🌓</button>
+    <button class="btn-leave" onclick="leaveChat()">Sair</button>
+  </div>
+</div>
       <div class="header-avatar" id="header-avatar">🥭</div>
       <div class="header-info">
         <div class="header-room" id="header-room">#sala</div>
@@ -864,6 +895,20 @@
     function initials(name) {
       return name ? name.slice(0, 2).toUpperCase() : '??';
     }
+
+// --- LÓGICA DE TEMA (DARK/LIGHT) ---
+window.toggleTheme = function() {
+  const currentTheme = document.documentElement.getAttribute('data-theme');
+  const targetTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  
+  document.documentElement.setAttribute('data-theme', targetTheme);
+  localStorage.setItem('mango-theme', targetTheme);
+};
+
+// Carregar o tema salvo ao abrir o site
+const savedTheme = localStorage.getItem('mango-theme') || 'light';
+document.documentElement.setAttribute('data-theme', savedTheme);
+    
     // ─── ENTER ───
     window.enterChat = async function() {
   const name = document.getElementById('inp-name').value.trim();
