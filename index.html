@@ -1356,7 +1356,6 @@ window.aiVibe=async function(){
 async function runAI(prompt){
   const output=document.getElementById('ai-output');
   output.innerHTML='<span class="ai-spinner"></span>Processando...';
-  // Collect last 20 messages
   const msgs=[...document.querySelectorAll('.msg-row:not(.msg-system-row)')].slice(-20);
   let conv='';
   msgs.forEach(row=>{
@@ -1365,18 +1364,14 @@ async function runAI(prompt){
     if(bubble) conv+=`${author?author.textContent.trim():'Você'}: ${bubble.textContent.trim()}\n`;
   });
   try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
+    const res=await fetch('https://mango-chat-jqbksz3du-mango-s-rawrs-projects.vercel.app/api/ai',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:1000,
-        messages:[{role:'user',content:`Conversa:\n${conv}\n\n${prompt}`}]
-      })
+      body:JSON.stringify({prompt:`Conversa:\n${conv}\n\n${prompt}`})
     });
     const data=await res.json();
-    output.textContent=data.content?.[0]?.text||'Sem resposta.';
-  }catch(err){ output.textContent='Erro ao contatar a IA.' }
+    output.textContent=data.text||data.error||'Sem resposta.';
+  }catch(err){ output.textContent='Erro ao contatar a IA: '+err.message }
 }
 
 /* ── Admin / Ban ── */
