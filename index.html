@@ -1364,7 +1364,7 @@ async function runAI(prompt){
     if(bubble) conv+=`${author?author.textContent.trim():'Você'}: ${bubble.textContent.trim()}\n`;
   });
   try{
-    const res=await fetch('https://mango-chat-jqbksz3du-mango-s-rawrs-projects.vercel.app/api/ai',{
+    const res=await fetch('https://mango-chat-sigma.vercel.app/api/ai',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({prompt:`Conversa:\n${conv}\n\n${prompt}`})
