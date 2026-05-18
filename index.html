@@ -396,6 +396,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);heig
       </div>
       <div class="online-badge"><div class="online-dot"></div><span id="online-count">1 online</span></div>
       <button class="icon-btn" onclick="toggleSearch()" title="Buscar">🔍</button>
+      <button class="icon-btn" onclick="openFavorites()" title="Favoritos">⭐</button>
       <button class="icon-btn" onclick="openAIPanel()" title="IA">🤖</button>
       <button class="icon-btn" id="members-btn" onclick="toggleMembers()" title="Membros">👥</button>
       <button class="icon-btn" onclick="openAdmin()" title="Admin" id="admin-btn" style="display:none">🛡️</button>
@@ -613,6 +614,17 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);heig
   </div>
 </div>
 
+<!-- Favorites -->
+<div class="modal-backdrop" id="favorites-modal">
+  <div class="modal">
+    <h3>⭐ Mensagens favoritas</h3>
+    <div id="favorites-list" style="flex:1;overflow-y:auto;max-height:340px;display:flex;flex-direction:column;gap:.5rem"></div>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" onclick="closeModal('favorites-modal')">Fechar</button>
+    </div>
+  </div>
+</div>
+  
 <!-- Lightbox -->
 <div id="lightbox" onclick="this.classList.remove('open')"><img id="lightbox-img" src="" alt=""></div>
 <div id="error-toast"></div>
@@ -657,7 +669,12 @@ const EMOJI_CATS=[
   {c:'Objetos',e:'💎💍👑🏆🎁📱💻🎯🔮🪄🧲💡🔦🧸🎀🎊🎉✨💥❤️🧡💛💚💙💜🖤'},
 ];
 const REACTION_EMOJIS=['❤️','😂','👍','😮','😢','🔥','🥭','💯'];
-const STICKERS=['🥭','🎉','🔥','💯','👑','🤣','😭','💀','🫡','🤝','💪','🙏','✅','❌','🚀','🌈','⭐','🎮','🎵','🍕','🧋','☕','🦋','🐉','🌊','❄️','💎','🎯','🪄','🤖'];
+// ══ STICKERS CUSTOMIZADOS ══
+// Adicione URLs de imagens aqui. Exemplo:
+// { url: 'https://i.imgur.com/abc.png', label: 'feliz' },
+const STICKERS = [
+  // { url: 'https://...', label: 'nome' },
+];
 
 /* ── State ── */
 let currentUser, currentRoom, serverPassHash;
@@ -713,6 +730,27 @@ window.applyTheme(localStorage.getItem('mc_theme')||'light',true);
 window.applyFont(localStorage.getItem('mc_font')||'nunito',true);
 window.applyFontSize(localStorage.getItem('mc_size')||'md',true);
 
+window.openFavorites=function(){
+  const list=document.getElementById('favorites-list');
+  list.innerHTML='';
+  if(favoriteMessages.size===0){
+    list.innerHTML='<div style="text-align:center;color:var(--text-dim);padding:1rem;font-size:.82rem">Nenhuma mensagem favorita ainda.</div>';
+  } else {
+    favoriteMessages.forEach(msgId=>{
+      const el=document.getElementById(`msg-${msgId}`);
+      const bubble=el?.querySelector('.msg-bubble');
+      const time=el?.querySelector('.msg-time');
+      if(!bubble) return;
+      const div=document.createElement('div');
+      div.style.cssText='background:var(--surface2);border:1.5px solid var(--border);border-radius:12px;padding:.6rem .85rem;cursor:pointer;font-size:.82rem;font-weight:600';
+      div.innerHTML=`<div style="font-size:.6rem;color:var(--text-dim);margin-bottom:.25rem">${time?.textContent||''}</div>${bubble.innerHTML}`;
+      div.onclick=()=>{ closeModal('favorites-modal'); scrollToMsg(msgId) };
+      list.appendChild(div);
+    });
+  }
+  document.getElementById('favorites-modal').classList.add('open');
+};
+  
 /* ── Password hash ── */
 async function hashPass(pass){
   const enc=new TextEncoder().encode('mangochat_salt_v1::'+pass);
@@ -1013,8 +1051,8 @@ function buildBubbleHTML(msgId,msg,isOwn){
     inner+=`<div class="reply-quote" onclick="scrollToMsg('${esc(msg.replyTo.msgId)}')">
       <div class="reply-quote-author">${rl}</div><div class="reply-quote-text">${rp}</div></div>`;
   }
-  if(msg.stickerEmoji){
-    inner+=`<div style="font-size:3rem;line-height:1">${esc(msg.stickerEmoji)}</div>`;
+  if(msg.stickerUrl){
+    inner+=`<img src="${esc(msg.stickerUrl)}" alt="${esc(msg.stickerLabel||'sticker')}" style="width:80px;height:80px;object-fit:contain;border-radius:8px">`;
   } else if(msg.gifUrl){
     inner+=`<div style="position:relative;display:inline-block"><img class="msg-image" src="${esc(msg.gifUrl)}" style="max-width:200px"><span class="gif-label">GIF</span></div>`;
     if(msg.text) inner+=`<div style="margin-top:.3rem">${esc(msg.text)}</div>`;
@@ -1046,8 +1084,10 @@ function buildPollHTML(msgId,msg,isOwn){
     const count=optVotes[i]||0;
     const pct=total>0?Math.round(count/total*100):0;
     const picked=myVote===i;
+    const maxVotes=Math.max(...Object.values(optVotes));
+    const isWinner=count===maxVotes&&maxVotes>0&&Object.values(optVotes).filter(v=>v===maxVotes).length===1;
     opts+=`<div class="poll-option" onclick="votePoll('${msgId}',${i})">
-      <div class="poll-option-row">${picked?'✅':' '} <span>${esc(opt)}</span></div>
+      <div class="poll-option-row">${picked?'🔵':' '} <span>${esc(opt)}</span>${isWinner?' 🏆':''}</div>
       <div style="display:flex;align-items:center;gap:.4rem">
         <div class="poll-bar-wrap"><div class="poll-bar" style="width:${pct}%"></div></div>
         <span class="poll-pct">${pct}%</span>
@@ -1214,7 +1254,8 @@ window.confirmDelete=function(msgId){
 
 /* ── Reply ── */
 window.setReply=async function(msgId){
-  cancelEdit();
+  editingMsgId=null;
+  document.getElementById('edit-bar').style.display='none';
   const snap=await get(ref(db,`rooms/${currentRoom}/messages/${msgId}`));if(!snap.exists()) return;
   const msg=snap.val();
   replyingTo={msgId,userId:msg.userId,userName:msg.userName||''};
@@ -1281,16 +1322,21 @@ async function sendGIF(url){
 /* ── Stickers ── */
 window.openStickerPicker=function(){
   const grid=document.getElementById('sticker-grid');grid.innerHTML='';
+  if(STICKERS.length===0){
+    grid.innerHTML='<div style="padding:1rem;text-align:center;color:var(--text-dim);font-size:.82rem">Nenhum sticker ainda.<br>Adicione imagens no array STICKERS no código!</div>';
+    document.getElementById('sticker-modal').classList.add('open');return;
+  }
   STICKERS.forEach(s=>{
-    const btn=document.createElement('button');btn.className='sticker-btn';btn.textContent=s;
-    btn.onclick=()=>sendSticker(s);
+    const btn=document.createElement('button');btn.className='sticker-btn';
+    btn.innerHTML=`<img src="${s.url}" alt="${s.label}" style="width:52px;height:52px;object-fit:contain">`;
+    btn.onclick=()=>sendSticker(s.url,s.label);
     grid.appendChild(btn);
   });
   document.getElementById('sticker-modal').classList.add('open');
 };
-async function sendSticker(emoji){
+async function sendSticker(url,label){
   closeModal('sticker-modal');
-  const payload={type:'message',userId:currentUser.id,userName:currentUser.name,userAvatar:currentUser.avatar,stickerEmoji:emoji,ts:serverTimestamp()};
+  const payload={type:'message',userId:currentUser.id,userName:currentUser.name,userAvatar:currentUser.avatar,stickerUrl:url,stickerLabel:label||'sticker',ts:serverTimestamp()};
   try{ await push(ref(db,`rooms/${currentRoom}/messages`),payload) }catch(err){ showError('Erro: '+err.message) }
 }
 
@@ -1304,6 +1350,7 @@ window.openPollModal=function(){
 };
 window.addPollOpt=function(){
   const c=document.getElementById('poll-options-container');
+  if(c.children.length>=10) return showError('Máximo de 10 opções!');
   const n=c.children.length+1;
   const row=document.createElement('div');row.className='poll-opt-row';
   row.innerHTML=`<input class="poll-opt-input" placeholder="Opção ${n}" maxlength="50"><button class="poll-rm-btn" onclick="removePollOpt(this)">✕</button>`;
